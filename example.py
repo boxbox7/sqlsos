@@ -2,7 +2,7 @@ import sqlsos as ss
 
 fields = [
     ss.IDField(),
-    ss.CharField('name', max_length=20)
+    ss.CharField('name')
 ]
 
 user = ss.Table('user', *fields)

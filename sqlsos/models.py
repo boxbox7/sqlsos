@@ -2,6 +2,7 @@ from .exceptions import TableFieldMultiPKException
 from .exceptions import FieldTypeException
 from .exceptions import FieldNotExistException
 from .utils import get_class_fields
+from .utils import is_safe_field_type
 
 
 class Sql:
@@ -28,6 +29,8 @@ class SQLiteFieldType:
     TEXT = 'TEXT'
     BLOB = 'BLOB'
     NUMERIC = 'NUMERIC'
+    CHAR = 'CHAR'
+    VARCHAR = 'VARCHAR'
 
 
 class Field:
@@ -48,7 +51,8 @@ class Field:
                  auto_increment=False
                  ):
         self.name = name
-        if type not in get_class_fields(SQLiteFieldType):
+        if type not in get_class_fields(SQLiteFieldType) \
+                and not is_safe_field_type(type):
             raise FieldTypeException(f'{type} is not supported.')
         self.type = type
         self.pk = pk

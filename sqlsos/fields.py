@@ -70,3 +70,22 @@ class BLOBField(Field):
                          pk=pk,
                          null=null,
                          auto_increment=auto_increment)
+
+
+class CharField(Field):
+    def __init__(self,
+                 name,
+                 max_length=None,
+                 pk=False,
+                 null=False,
+                 auto_increment=False
+                 ):
+        if max_length is not None:
+            char_type = self.TYPE.CHAR + f'({max_length})'
+        else:
+            char_type = self.TYPE.VARCHAR
+        super().__init__(name,
+                         char_type,
+                         pk=pk,
+                         null=null,
+                         auto_increment=auto_increment)

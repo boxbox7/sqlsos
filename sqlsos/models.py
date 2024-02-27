@@ -1,3 +1,9 @@
+from .exceptions import TableFieldMultiPKException
+from .exceptions import FieldTypeException
+from .exceptions import FieldNotExistException
+from .utils import get_class_fields
+
+
 class Sql:
     """
     just support sqlite,
@@ -8,12 +14,9 @@ class Sql:
 
 
 class BaseTableSQL(Sql):
-    """
-    base table-sql have no `where` `order by` balabala..
-    """
     CREATE_SQL = 'CREATE TABLE {table_name} ({fields});'
     DROP_SQL = 'DROP TABLE {table_name};'
-    INSERT_SQL = 'INSERT INTO {table_name} (ID, {fields}) VALUES (NULL, {values});'
+    INSERT_SQL = 'INSERT INTO {table_name} ({fields}) VALUES ({values});'
     INSERT_INTO_SQL = 'INSERT INTO {to_table_name} {to_fields} SELECT {from_fields} FROM {from_table_name}'
     SELECT_SQL = 'SELECT {fields} FROM {table_name}'
 
@@ -75,9 +78,6 @@ class Field:
         s = " ".join(data)
         return s
 
-    def __str__(self):
-        return self.dump()
-
 
 class FieldSet:
     """ todo:create a collection of field"""
@@ -87,14 +87,16 @@ class FieldSet:
 
 
 class Table:
-    def __init__(self, name, *fields):
-        self.name = name
+    def __init__(self, table_name, *fields):
+        self.table_name = table_name
         if not self.is_pk_only_or_zero(fields):
             raise TableFieldMultiPKException()
         self.fields = tuple(fields)
+        for field in self.fields:
+            setattr(self, field.name, None)
 
-    def __str__(self):
-        return f'<{self.name}>'
+    def __repr__(self):
+        return f'<{self.table_name} {id(self)}>'
 
     def is_pk_only_or_zero(self, fields=None):
         if fields is None:
@@ -104,28 +106,35 @@ class Table:
     def create(self):
         if not self.is_pk_only_or_zero():
             raise TableFieldMultiPKException()
-        return BaseTableSQL.CREATE_SQL.format(table_name=self.name,
-                                              fields=self.fields)
+        fields_str = ', '.join(field.dump() for field in self.fields)
+        return BaseTableSQL.CREATE_SQL.format(table_name=self.table_name,
+                                              fields=fields_str)
+
+    def drop(self):
+        return BaseTableSQL.DROP_SQL.format(table_name=self.table_name)
+
+    def insert(self, **kwargs):
+        for field in kwargs.keys():
+            if field not in dir(self):
+                raise FieldNotExistException(f'{field} is not a valid field')
+        fields = (k for k in kwargs.keys())
+        values = (str(repr(v)) for v in kwargs.values())
+        fields_str = ', '.join(fields)
+        values_str = ', '.join(values)
+        return BaseTableSQL.INSERT_SQL.format(table_name=self.table_name,
+                                              fields=fields_str,
+                                              values=values_str)
+
+    def select(self, field):
+        return Query(self, field)
 
 
-class FieldTypeException(Exception):
-    """type of field is not support"""
-
-
-class TableFieldMultiPKException(Exception):
-    """the exception about table have multiple primary key"""
-
-
-def get_class_fields(cls):
-    for t in dir(cls):
-        if not t.startswith('__'):
-            yield t
-
-
-def make_default_id_fields() -> Field:
-    """
-    make a `id` field
-    :return:
-    """
-    f = Field('id', Field.TYPE.INTEGER, pk=True, auto_increment=True)
-    return f
+class Query:
+    # todo
+    def __init__(self,
+                 table=None,
+                 fields=None):
+        self.table = table
+        self.fields = fields or []
+        self._from = False
+        self._where = False

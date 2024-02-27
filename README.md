@@ -1,13 +1,21 @@
 # Sqlsos
 
-sos! i don`t want to write f**king sql. sqlsos is a better sql-hepler for you.
+sos! i don`t want to write f**king sql. sqlsos will be a better sql-hepler for you.
 
-### quick start
+**quick start**
 
-``` python
->>> from sqlsos import Field, Table
->>> name = Field('name', Field.TYPE.TEXT, pk=True)
->>> User = Table('User', name)
->>> User.create()
-
+```python
+>>> fields = [
+...     ss.IDField(),
+...     ss.IntegerField('age'),
+...     ss.TextField('name'),
+...     ss.TextField('email', null=True)
+... ]
+>>> user = ss.Table('user', *fields)
+>>> print(user.create())
+CREATE TABLE user (id INTEGER PRIMARY KEY AUTOINCREMENT, age INTEGER NOT NULL, name TEXT NOT NULL, email TEXT);
+>>> print(user.drop())
+DROP TABLE user;
+>>> print(user.insert(name='box', email='xxxx@gmail.com', age=14))
+INSERT INTO user (name, email, age) VALUES ('box', 'xxxx@gmail.com', 14);
 ```

@@ -2,9 +2,7 @@ import sqlsos as ss
 
 fields = [
     ss.IDField(),
-    ss.IntegerField('age'),
-    ss.TextField('name'),
-    ss.TextField('email', null=True)
+    ss.CharField('name', max_length=20)
 ]
 
 user = ss.Table('user', *fields)
@@ -12,5 +10,5 @@ print(user.create())
 # CREATE TABLE user (id INTEGER PRIMARY KEY AUTOINCREMENT, age INTEGER NOT NULL, name TEXT NOT NULL, email TEXT);
 print(user.drop())
 # DROP TABLE user;
-print(user.insert(name='box', email='xxxx@gmail.com', age=14))
+print(user.insert(name='box'))
 # INSERT INTO user (name, email) VALUES (box, xxxx@gmail.com);

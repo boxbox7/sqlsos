@@ -5,6 +5,7 @@ sos! i don`t want to write f**king sql. sqlsos will be a better sql-hepler for y
 **quick start**
 
 ```python
+>>> import sqlsos as ss
 >>> fields = [
 ...     ss.IDField(),
 ...     ss.IntegerField('age'),

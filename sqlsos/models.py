@@ -1,6 +1,7 @@
 from .exceptions import TableFieldMultiPKException
 from .exceptions import FieldTypeException
 from .exceptions import FieldNotExistException
+from .exceptions import TableOperationRepeatedException
 from .utils import get_class_fields
 from .utils import is_safe_field_type
 
@@ -34,27 +35,13 @@ class SQLiteFieldType:
 
 
 class Field:
-    """
-    table`s field instance
-    ::
-    >>> from sqlsos import Field
-    >>> f = Field('first_name', Field.TYPE.TEXT)
-    """
-    TYPE = SQLiteFieldType
-
     def __init__(self,
                  name,
-                 type,
                  /,
                  pk=False,
                  null=False,
-                 auto_increment=False
-                 ):
+                 auto_increment=False):
         self.name = name
-        if type not in get_class_fields(SQLiteFieldType) \
-                and not is_safe_field_type(type):
-            raise FieldTypeException(f'{type} is not supported.')
-        self.type = type
         self.pk = pk
         self.null = null
         self.auto_increment = auto_increment
@@ -71,6 +58,33 @@ class Field:
 
     def _cov_pk(self):
         return "PRIMARY KEY" if self.auto_increment else ""
+
+    def dump(self):
+        raise NotImplementedError
+
+
+class TypedField(Field):
+    """
+    table`s field instance
+    ::
+    >>> from sqlsos import TypedField
+    >>> f = TypedField('first_name', TypedField.TYPE.TEXT)
+    """
+    TYPE = SQLiteFieldType
+
+    def __init__(self,
+                 name,
+                 field_type,
+                 /,
+                 pk=False,
+                 null=False,
+                 auto_increment=False
+                 ):
+        if field_type not in get_class_fields(SQLiteFieldType) \
+                and not is_safe_field_type(field_type):
+            raise FieldTypeException(f'{field_type} is not supported.')
+        self.type = field_type
+        super().__init__(name, pk=pk, null=null, auto_increment=auto_increment)
 
     def dump(self):
         fields = [self.name,
@@ -95,9 +109,13 @@ class Table:
         self.table_name = table_name
         if not self.is_pk_only_or_zero(fields):
             raise TableFieldMultiPKException()
+
         self.fields = tuple(fields)
         for field in self.fields:
-            setattr(self, field.name, None)
+            if isinstance(field, Field):
+                setattr(self, field.name, None)
+            else:
+                raise FieldNotExistException()
 
     def __repr__(self):
         return f'<{self.table_name} {id(self)}>'
@@ -118,9 +136,7 @@ class Table:
         return BaseTableSQL.DROP_SQL.format(table_name=self.table_name)
 
     def insert(self, **kwargs):
-        for field in kwargs.keys():
-            if field not in dir(self):
-                raise FieldNotExistException(f'{field} is not a valid field')
+        self.check_input_fields(kwargs.keys())
         fields = (k for k in kwargs.keys())
         values = (str(repr(v)) for v in kwargs.values())
         fields_str = ', '.join(fields)
@@ -129,7 +145,12 @@ class Table:
                                               fields=fields_str,
                                               values=values_str)
 
-    def select(self, field):
+    def check_input_fields(self, fields):
+        for field in fields:
+            if field not in dir(self):
+                raise FieldNotExistException(f'{field} is not a valid field')
+
+    def select(self, *field):
         return Query(self, field)
 
 
@@ -140,5 +161,30 @@ class Query:
                  fields=None):
         self.table = table
         self.fields = fields or []
-        self._from = False
         self._where = False
+        self._where_data = {}
+        self._order_by = False
+        self._order_by_data = {}
+        self._group_by = False
+
+    def where(self, **kwargs):
+        if self._where:
+            raise TableOperationRepeatedException()
+        self.table.check_input_fields(kwargs)
+        self._where_data.update(kwargs)
+        self._mute(self.where)
+        return self
+
+    def order_by(self, **kwargs):
+        if self._order_by:
+            raise TableOperationRepeatedException()
+        self.table.check_input_fields(kwargs.keys())
+        self._order_by_data.update(kwargs)
+        self._mute(self.order_by)
+        return self
+
+    def to_sql(self):
+        """ todo """
+
+    def _mute(self, func):
+        setattr(self, f'_{func.__name__}', True)

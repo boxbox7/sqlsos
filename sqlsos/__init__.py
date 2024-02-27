@@ -5,6 +5,7 @@ from sqlsos.fields import IDField
 from sqlsos.fields import REALField
 from sqlsos.fields import IntegerField
 from sqlsos.fields import CharField
-from sqlsos.fields import Field
+from sqlsos.fields import TypedField
+from sqlsos.shortcut import select
 
 

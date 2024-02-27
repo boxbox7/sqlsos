@@ -8,3 +8,11 @@ class FieldNotExistException(Exception):
 
 class TableFieldMultiPKException(Exception):
     """the exception about table have multiple primary key"""
+
+
+class TableFieldParseException(Exception):
+    """table accept obj is not Field instance"""
+
+
+class TableOperationRepeatedException(Exception):
+    pass

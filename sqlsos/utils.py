@@ -21,3 +21,15 @@ def is_safe_field_type(_type):
             return True
         case _:
             return False
+
+
+def iterable(obj):
+    try:
+        iter(obj)
+    except TypeError:
+        return False
+
+    return True
+
+
+

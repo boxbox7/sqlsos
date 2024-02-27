@@ -1,7 +1,7 @@
-from .models import Field
+from .models import TypedField
 
 
-class IDField(Field):
+class IDField(TypedField):
     def __init__(self,
                  name='id',
                  pk=True,
@@ -15,7 +15,7 @@ class IDField(Field):
                          auto_increment=auto_increment)
 
 
-class TextField(Field):
+class TextField(TypedField):
     def __init__(self,
                  name,
                  pk=False,
@@ -29,7 +29,7 @@ class TextField(Field):
                          auto_increment=auto_increment)
 
 
-class IntegerField(Field):
+class IntegerField(TypedField):
 
     def __init__(self,
                  name,
@@ -44,7 +44,7 @@ class IntegerField(Field):
                          auto_increment=auto_increment)
 
 
-class REALField(Field):
+class REALField(TypedField):
     def __init__(self,
                  name,
                  pk=False,
@@ -58,7 +58,7 @@ class REALField(Field):
                          auto_increment=auto_increment)
 
 
-class BLOBField(Field):
+class BLOBField(TypedField):
     def __init__(self,
                  name,
                  pk=False,
@@ -72,7 +72,7 @@ class BLOBField(Field):
                          auto_increment=auto_increment)
 
 
-class CharField(Field):
+class CharField(TypedField):
     def __init__(self,
                  name,
                  max_length=None,

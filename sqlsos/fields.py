@@ -1,7 +1,7 @@
-from .models import TypedField
+from .models import Field
 
 
-class IDField(TypedField):
+class IDField(Field):
     def __init__(self,
                  name='id',
                  pk=True,
@@ -15,7 +15,7 @@ class IDField(TypedField):
                          auto_increment=auto_increment)
 
 
-class TextField(TypedField):
+class TextField(Field):
     def __init__(self,
                  name,
                  pk=False,
@@ -29,7 +29,7 @@ class TextField(TypedField):
                          auto_increment=auto_increment)
 
 
-class IntegerField(TypedField):
+class IntegerField(Field):
 
     def __init__(self,
                  name,
@@ -44,7 +44,7 @@ class IntegerField(TypedField):
                          auto_increment=auto_increment)
 
 
-class REALField(TypedField):
+class REALField(Field):
     def __init__(self,
                  name,
                  pk=False,
@@ -58,7 +58,7 @@ class REALField(TypedField):
                          auto_increment=auto_increment)
 
 
-class BLOBField(TypedField):
+class BLOBField(Field):
     def __init__(self,
                  name,
                  pk=False,
@@ -72,7 +72,7 @@ class BLOBField(TypedField):
                          auto_increment=auto_increment)
 
 
-class CharField(TypedField):
+class CharField(Field):
     def __init__(self,
                  name,
                  max_length=None,
@@ -81,7 +81,7 @@ class CharField(TypedField):
                  auto_increment=False
                  ):
         if max_length is not None:
-            char_type = self.TYPE.CHAR + f'({max_length})'
+            char_type = self.TYPE.VARCHAR + f'({max_length})'
         else:
             char_type = self.TYPE.VARCHAR
         super().__init__(name,

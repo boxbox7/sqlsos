@@ -9,12 +9,13 @@ from .utils import is_safe_field_type
 class Sql:
     """
     just support sqlite,
-    because i only use it now...
-    anyway maybe i will add others, haha...
+    because I only use it now...
+    anyway maybe I will add others, haha...
     """
     pass
 
 
+# noinspection SqlNoDataSourceInspection
 class BaseTableSQL(Sql):
     CREATE_SQL = 'CREATE TABLE {table_name} ({fields});'
     DROP_SQL = 'DROP TABLE {table_name};'
@@ -35,40 +36,11 @@ class SQLiteFieldType:
 
 
 class Field:
-    def __init__(self,
-                 name,
-                 /,
-                 pk=False,
-                 null=False,
-                 auto_increment=False):
-        self.name = name
-        self.pk = pk
-        self.null = null
-        self.auto_increment = auto_increment
-
-    def _cov_null(self) -> str:
-        if not self.null and not self.auto_increment:
-            return 'NOT NULL'
-        return ''
-
-    def _cov_auto_increment(self) -> str:
-        if self.auto_increment:
-            return 'AUTOINCREMENT'
-        return ''
-
-    def _cov_pk(self):
-        return "PRIMARY KEY" if self.auto_increment else ""
-
-    def dump(self):
-        raise NotImplementedError
-
-
-class TypedField(Field):
     """
     table`s field instance
     ::
-    >>> from sqlsos import TypedField
-    >>> f = TypedField('first_name', TypedField.TYPE.TEXT)
+    >>> from sqlsos import Field
+    >>> f = Field('first_name', Field.TYPE.TEXT)
     """
     TYPE = SQLiteFieldType
 
@@ -80,15 +52,32 @@ class TypedField(Field):
                  null=False,
                  auto_increment=False
                  ):
+        self._name = name
+        self._pk = pk
+        self._null = null
+        self._auto_increment = auto_increment
         if field_type not in get_class_fields(SQLiteFieldType) \
                 and not is_safe_field_type(field_type):
             raise FieldTypeException(f'{field_type} is not supported.')
-        self.type = field_type
-        super().__init__(name, pk=pk, null=null, auto_increment=auto_increment)
+        self._type = field_type
+        # super().__init__(_name, pk=pk, null=null, auto_increment=auto_increment)
+
+    def _cov_null(self) -> str:
+        if not self._null and not self._auto_increment:
+            return 'NOT NULL'
+        return ''
+
+    def _cov_auto_increment(self) -> str:
+        if self._auto_increment:
+            return 'AUTOINCREMENT'
+        return ''
+
+    def _cov_pk(self):
+        return "PRIMARY KEY" if self._auto_increment or self._pk else ""
 
     def dump(self):
-        fields = [self.name,
-                  self.type,
+        fields = [self._name,
+                  self._type,
                   self._cov_pk(),
                   self._cov_null(),
                   self._cov_auto_increment()]
@@ -106,34 +95,34 @@ class FieldSet:
 
 class Table:
     def __init__(self, table_name, *fields):
-        self.table_name = table_name
+        self._table_name = table_name
         if not self.is_pk_only_or_zero(fields):
             raise TableFieldMultiPKException()
 
         self.fields = tuple(fields)
         for field in self.fields:
             if isinstance(field, Field):
-                setattr(self, field.name, None)
+                setattr(self, field._name, None)
             else:
                 raise FieldNotExistException()
 
     def __repr__(self):
-        return f'<{self.table_name} {id(self)}>'
+        return f'<{self._table_name} {id(self)}>'
 
     def is_pk_only_or_zero(self, fields=None):
         if fields is None:
             fields = self.fields
-        return len([field for field in fields if field.pk]) <= 1
+        return len([field for field in fields if field._pk]) <= 1
 
     def create(self):
         if not self.is_pk_only_or_zero():
             raise TableFieldMultiPKException()
         fields_str = ', '.join(field.dump() for field in self.fields)
-        return BaseTableSQL.CREATE_SQL.format(table_name=self.table_name,
+        return BaseTableSQL.CREATE_SQL.format(table_name=self._table_name,
                                               fields=fields_str)
 
     def drop(self):
-        return BaseTableSQL.DROP_SQL.format(table_name=self.table_name)
+        return BaseTableSQL.DROP_SQL.format(table_name=self._table_name)
 
     def insert(self, **kwargs):
         self.check_input_fields(kwargs.keys())
@@ -141,7 +130,7 @@ class Table:
         values = (str(repr(v)) for v in kwargs.values())
         fields_str = ', '.join(fields)
         values_str = ', '.join(values)
-        return BaseTableSQL.INSERT_SQL.format(table_name=self.table_name,
+        return BaseTableSQL.INSERT_SQL.format(table_name=self._table_name,
                                               fields=fields_str,
                                               values=values_str)
 
@@ -159,8 +148,8 @@ class Query:
     def __init__(self,
                  table=None,
                  fields=None):
-        self.table = table
-        self.fields = fields or []
+        self._table = table
+        self._fields = fields or []
         self._where = False
         self._where_data = {}
         self._order_by = False
@@ -170,7 +159,7 @@ class Query:
     def where(self, **kwargs):
         if self._where:
             raise TableOperationRepeatedException()
-        self.table.check_input_fields(kwargs)
+        self._table.check_input_fields(kwargs)
         self._where_data.update(kwargs)
         self._mute(self.where)
         return self
@@ -178,13 +167,13 @@ class Query:
     def order_by(self, **kwargs):
         if self._order_by:
             raise TableOperationRepeatedException()
-        self.table.check_input_fields(kwargs.keys())
+        self._table.check_input_fields(kwargs.keys())
         self._order_by_data.update(kwargs)
         self._mute(self.order_by)
         return self
 
-    def to_sql(self):
-        """ todo """
+    def dump(self):
+        pass
 
     def _mute(self, func):
         setattr(self, f'_{func.__name__}', True)

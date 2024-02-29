@@ -15,4 +15,6 @@ class TableFieldParseException(Exception):
 
 
 class TableOperationRepeatedException(Exception):
-    pass
+    def __init__(self, obj):
+        mes = f'already finished `{obj}` function, don`t repeat it'
+        super().__init__(mes)

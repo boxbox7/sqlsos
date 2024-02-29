@@ -1,7 +1,7 @@
 from .exceptions import TableFieldMultiPKException
 from .exceptions import FieldTypeException
 from .exceptions import FieldNotExistException
-from .exceptions import TableOperationRepeatedException
+from .mixins import QueryWhereAbleMixin, QueryGroupByAbleMixin, QueryOrderByAbleMixin
 from .utils import get_class_fields
 from .utils import is_safe_field_type
 
@@ -22,6 +22,7 @@ class BaseTableSQL(Sql):
     INSERT_SQL = 'INSERT INTO {table_name} ({fields}) VALUES ({values});'
     INSERT_INTO_SQL = 'INSERT INTO {to_table_name} {to_fields} SELECT {from_fields} FROM {from_table_name}'
     SELECT_SQL = 'SELECT {fields} FROM {table_name}'
+    UPDATE_SQL = 'UPDATE {table_name} '
 
 
 class SQLiteFieldType:
@@ -142,38 +143,37 @@ class Table:
     def select(self, *field):
         return Query(self, field)
 
+    def update(self, **kwargs):
+        return UpdQuery(self, kwargs)
 
-class Query:
-    # todo
-    def __init__(self,
-                 table=None,
-                 fields=None):
+
+class BaseQuery:
+    def __init__(self, table, fields):
+        table.check_input_fields(fields)
         self._table = table
-        self._fields = fields or []
-        self._where = False
-        self._where_data = {}
-        self._order_by = False
-        self._order_by_data = {}
-        self._group_by = False
-
-    def where(self, **kwargs):
-        if self._where:
-            raise TableOperationRepeatedException()
-        self._table.check_input_fields(kwargs)
-        self._where_data.update(kwargs)
-        self._mute(self.where)
-        return self
-
-    def order_by(self, **kwargs):
-        if self._order_by:
-            raise TableOperationRepeatedException()
-        self._table.check_input_fields(kwargs.keys())
-        self._order_by_data.update(kwargs)
-        self._mute(self.order_by)
-        return self
+        self._fields = fields
 
     def dump(self):
         pass
 
-    def _mute(self, func):
-        setattr(self, f'_{func.__name__}', True)
+
+class Query(QueryWhereAbleMixin, QueryOrderByAbleMixin, QueryGroupByAbleMixin, BaseQuery):
+
+    def __init__(self,
+                 *args,
+                 **kwargs):
+        super().__init__(*args, **kwargs)
+
+    def dump(self):
+        base_sql = BaseTableSQL.SELECT_SQL.format(table_name=self._table._table_name,
+                                                  fields=', '.join(self._fields))
+
+        return sql or base_sql
+
+
+class UpdQuery(QueryWhereAbleMixin, BaseQuery):
+    def __init__(self,
+                 *args,
+                 **kwargs):
+        super().__init__(*args, **kwargs)
+
